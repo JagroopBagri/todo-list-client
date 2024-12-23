@@ -19,7 +19,7 @@ This is the frontend application for the Todo-List App built with **Next.js**. I
 
 ```
 
-git clone [<repository-url>](https://github.com/JagroopBagri/todo-list-client.git)
+git clone https://github.com/JagroopBagri/todo-list-client.git
 cd <client-directory>
   
 ```
