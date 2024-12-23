@@ -1,101 +1,175 @@
-import Image from "next/image";
+/* eslint-disable react/no-unescaped-entities */
+"use client";
 
-export default function Home() {
+import React, { useEffect, useState } from "react";
+import { getTasks, updateTask, deleteTask } from "@/lib/api/tasks";
+import { Task } from "@/lib/types";
+import TaskCard from "@/components/TaskCard";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {FileText, Plus, Loader2} from "lucide-react";
+import AppHeader from "@/components/AppHeader";
+
+export default function HomePage() {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+  const completedCount = tasks.filter((t) => t.completed).length;
+
+  const sortTasks = (tasks: Task[]): Task[] => {
+    return tasks.sort((a, b) => {
+      if (a.completed !== b.completed) {
+        return a.completed ? 1 : -1;
+      }
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
+  };
+
+  const fetchTasks = async () => {
+    try {
+      const data = await getTasks();
+      const sortedTasks = sortTasks(data);
+      setTasks(sortedTasks);
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch tasks. Please try again later.",
+        variant: "destructive",
+      });
+    }finally{
+      setIsLoading(false);
+    }
+  };
+
+  const handleToggleComplete = async (task: Task) => {
+    try {
+      const updated = await updateTask(task.id, { completed: !task.completed });
+      setTasks((prev) => {
+        const updatedTasks = prev.map((t) => (t.id === task.id ? updated : t));
+        return sortTasks(updatedTasks);
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Failed to update task. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTaskId) return;
+
+    try {
+      await deleteTask(deleteTaskId);
+      setTasks((prev) => prev.filter((t) => t.id !== deleteTaskId));
+      setDeleteTaskId(null);
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Failed to delete task. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div>
+      <AppHeader></AppHeader>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      <Link href="/create" className="block mb-8">
+        <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-md">
+          Create Task  <div className="ml-2 bg-blue-500 rounded-full p-1">
+      <Plus className="w-4 h-4" />
+    </div>
+        </Button>
+      </Link>
+
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          <span className="text-blue-400">Tasks</span>
+          <span className="ml-2 bg-[#1a1a1a] px-2 py-1 rounded text-gray-400">
+            {isLoading ? "-" : tasks.length}
+          </span>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        <div>
+          <span className="text-purple-400">Completed</span>
+          <span className="ml-2 bg-[#1a1a1a] px-2 py-1 rounded text-gray-400">
+            {isLoading ? "-" : (!completedCount ? 0 : `${completedCount} of ${tasks.length}`)}
+          </span>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center mt-16">
+          <Loader2 className="w-8 h-8 text-blue-400 animate-spin mb-2" />
+          <p className="text-gray-400">Loading tasks...</p>
+        </div>
+      ) : tasks.length === 0 ? (
+        <div className="text-center mt-16">
+          <FileText className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+          <p className="text-gray-400">You don't have any tasks registered yet.</p>
+          <p className="text-gray-500">Create tasks and organize your to-do items.</p>
+        </div>
+      ) : (
+        <ul className="space-y-4">
+          {tasks.map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              onToggleComplete={handleToggleComplete}
+              onDelete={() => setDeleteTaskId(task.id)}
+            />
+          ))}
+        </ul>
+      )}
+
+      <Dialog
+        open={deleteTaskId !== null}
+        onOpenChange={() => setDeleteTaskId(null)}
+      >
+        <DialogContent className="bg-[#1a1a1a] text-white max-w-[90%] w-[400px] sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <p className="text-gray-400">
+              Are you sure you want to delete this task? This action cannot be
+              undone.
+            </p>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="secondary"
+              onClick={() => setDeleteTaskId(null)}
+              className="bg-gray-700 hover:bg-gray-600 text-white"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
