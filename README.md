@@ -2,6 +2,9 @@
 
 This is the frontend application for the Todo-List App built with **Next.js**. It integrates with the backend to provide task management functionality.
 
+## Hosted 
+This application is hosted at the following url - [https://jagroops-todo-list.vercel.app/](https://jagroops-todo-list.vercel.app/)
+
 ## Features
 
 *   Create, edit, delete, and view tasks
