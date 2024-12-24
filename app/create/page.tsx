@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createTask } from "@/lib/api/tasks";
 import TaskForm from "@/components/forms/TaskForm";
@@ -14,9 +14,11 @@ import { ChevronLeft } from "lucide-react";
 export default function CreateTaskPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
 
   const handleCreateTask = async (data: TaskFormData) => {
     try {
+      setLoading(true);
       await createTask(data);
       router.push("/");
     } catch (error) {
@@ -26,6 +28,8 @@ export default function CreateTaskPage() {
         description: "Failed to create task. Please try again later.",
         variant: "destructive",
       });
+    }finally{
+      setLoading(false);
     }
   };
 
@@ -45,6 +49,7 @@ export default function CreateTaskPage() {
           defaultValues={{ title: "", color: TASK_COLORS[0] }}
           onSubmit={handleCreateTask}
           buttonLabel="Add Task"
+          isLoading={loading}
         />
       </div>
     </div>

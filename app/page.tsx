@@ -15,7 +15,7 @@ import {
   DialogFooter,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {FileText, Plus, Loader2} from "lucide-react";
+import { FileText, Plus, Loader2 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 
 export default function HomePage() {
@@ -23,6 +23,7 @@ export default function HomePage() {
   const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const [isDeleting, setIsDeleting] = useState(false);
   const completedCount = tasks.filter((t) => t.completed).length;
 
   const sortTasks = (tasks: Task[]): Task[] => {
@@ -46,12 +47,20 @@ export default function HomePage() {
         description: "Failed to fetch tasks. Please try again later.",
         variant: "destructive",
       });
-    }finally{
+    } finally {
       setIsLoading(false);
     }
   };
 
   const handleToggleComplete = async (task: Task) => {
+    // optimistically update the local state
+    setTasks((prev) => {
+      const updatedTasks = prev.map((t) =>
+        t.id === task.id ? { ...t, completed: !task.completed } : t
+      );
+      return sortTasks(updatedTasks);
+    });
+
     try {
       const updated = await updateTask(task.id, { completed: !task.completed });
       setTasks((prev) => {
@@ -72,6 +81,7 @@ export default function HomePage() {
     if (!deleteTaskId) return;
 
     try {
+      setIsDeleting(true);
       await deleteTask(deleteTaskId);
       setTasks((prev) => prev.filter((t) => t.id !== deleteTaskId));
       setDeleteTaskId(null);
@@ -82,6 +92,8 @@ export default function HomePage() {
         description: "Failed to delete task. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -95,9 +107,10 @@ export default function HomePage() {
 
       <Link href="/create" className="block mb-8">
         <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-md">
-          Create Task  <div className="ml-2 bg-blue-500 rounded-full p-1">
-      <Plus className="w-4 h-4" />
-    </div>
+          Create Task{" "}
+          <div className="ml-2 bg-blue-500 rounded-full p-1">
+            <Plus className="w-4 h-4" />
+          </div>
         </Button>
       </Link>
 
@@ -111,7 +124,11 @@ export default function HomePage() {
         <div>
           <span className="text-purple-400">Completed</span>
           <span className="ml-2 bg-[#1a1a1a] px-2 py-1 rounded text-gray-400">
-            {isLoading ? "-" : (!completedCount ? 0 : `${completedCount} of ${tasks.length}`)}
+            {isLoading
+              ? "-"
+              : !completedCount
+              ? 0
+              : `${completedCount} of ${tasks.length}`}
           </span>
         </div>
       </div>
@@ -124,8 +141,12 @@ export default function HomePage() {
       ) : tasks.length === 0 ? (
         <div className="text-center mt-16">
           <FileText className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-          <p className="text-gray-400">You don't have any tasks registered yet.</p>
-          <p className="text-gray-500">Create tasks and organize your to-do items.</p>
+          <p className="text-gray-400">
+            You don't have any tasks registered yet.
+          </p>
+          <p className="text-gray-500">
+            Create tasks and organize your to-do items.
+          </p>
         </div>
       ) : (
         <ul className="space-y-4">
@@ -157,6 +178,7 @@ export default function HomePage() {
               variant="secondary"
               onClick={() => setDeleteTaskId(null)}
               className="bg-gray-700 hover:bg-gray-600 text-white"
+              disabled={isDeleting}
             >
               Cancel
             </Button>
@@ -164,8 +186,12 @@ export default function HomePage() {
               variant="destructive"
               onClick={handleDelete}
               className="bg-red-600 hover:bg-red-700"
+              disabled={isDeleting}
             >
-              Delete
+              {isDeleting ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : null}
+              {isDeleting ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

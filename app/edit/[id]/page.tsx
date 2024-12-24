@@ -15,6 +15,7 @@ export default function EditTaskPage() {
   const params = useParams();
   const taskId = params.id && !Array.isArray(params.id) ? parseInt(params.id) : null;
   const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
 
   const [initialValues, setInitialValues] = useState<TaskFormData | null>(null);
 
@@ -47,6 +48,7 @@ export default function EditTaskPage() {
     if (!taskId) return;
 
     try {
+      setLoading(true);
       await updateTask(taskId, data);
       router.push("/");
     } catch (error) {
@@ -56,6 +58,8 @@ export default function EditTaskPage() {
         description: "Failed to update task. Please try again later.",
         variant: "destructive",
       });
+    }finally{
+      setLoading(false);
     }
   };
 
@@ -84,6 +88,7 @@ export default function EditTaskPage() {
             defaultValues={initialValues}
             onSubmit={handleUpdateTask}
             buttonLabel="Save"
+            isLoading={loading}
           />
         )}
       </div>
